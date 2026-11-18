@@ -30,7 +30,25 @@ You can also pin the same actors on Apify's own hosted MCP server with no local 
 1. Create an Apify account if you do not have one, and mint a personal API token in the console. Do not commit the token.
 2. Run the server with that token in the environment.
 
-Cursor, Claude Desktop, or any MCP client that speaks stdio:
+The packaged image is `ghcr.io/datlabhq/datlab-mcp`. In Cursor, Claude Desktop, or any MCP client that speaks stdio:
+
+```json
+{
+  "mcpServers": {
+    "datlab": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "APIFY_TOKEN", "ghcr.io/datlabhq/datlab-mcp:0.1.0"],
+      "env": {
+        "APIFY_TOKEN": "your-apify-token"
+      }
+    }
+  }
+}
+```
+
+### From source
+
+There is no npm package on the public npm registry. To run from this repo, either use npx against GitHub or build a local clone.
 
 ```json
 {
@@ -45,8 +63,6 @@ Cursor, Claude Desktop, or any MCP client that speaks stdio:
   }
 }
 ```
-
-From a clone:
 
 ```bash
 git clone https://github.com/datlabhq/datlab-mcp.git

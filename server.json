@@ -9,10 +9,8 @@
   "version": "0.1.0",
   "packages": [
     {
-      "registryType": "npm",
-      "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "datlab-mcp",
-      "version": "0.1.0",
+      "registryType": "oci",
+      "identifier": "ghcr.io/datlabhq/datlab-mcp:0.1.0",
       "transport": {
         "type": "stdio"
       },
