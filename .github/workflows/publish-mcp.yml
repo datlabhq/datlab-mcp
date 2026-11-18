@@ -90,17 +90,35 @@ jobs:
         run: |
           set -euo pipefail
           # The official MCP Registry only accepts anonymously pullable images.
-          # The package record can lag a few seconds behind the push.
+          # GITHUB_TOKEN can push to GHCR, but the Packages REST API often returns
+          # 404 for visibility changes. Try the API, then fall back to an anonymous pull.
+          gh api --method PATCH "orgs/datlabhq/packages/container/datlab-mcp" -f visibility=public || true
           for i in 1 2 3 4 5 6; do
-            if gh api --method PATCH "orgs/datlabhq/packages/container/datlab-mcp" -f visibility=public; then
-              echo "GHCR package visibility set to public."
+            status="$(curl -sS -o /dev/null -w '%{http_code}' \
+              -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+              "https://ghcr.io/v2/datlabhq/datlab-mcp/manifests/${{ steps.version.outputs.version }}")"
+            # Public images still start with 401, then a token exchange that yields 200.
+            token="$(curl -sS 'https://ghcr.io/token?service=ghcr.io&scope=repository:datlabhq/datlab-mcp:pull' | jq -r .token)"
+            pull="$(curl -sS -o /dev/null -w '%{http_code}' \
+              -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+              -H "Authorization: Bearer ${token}" \
+              "https://ghcr.io/v2/datlabhq/datlab-mcp/manifests/${{ steps.version.outputs.version }}")"
+            echo "Anonymous token pull status: ${pull} (direct ${status})"
+            if [[ "$pull" == "200" ]]; then
+              echo "GHCR package is publicly pullable."
               exit 0
             fi
             sleep 5
           done
-          echo "Could not set ghcr.io/datlabhq/datlab-mcp to public with GITHUB_TOKEN."
-          echo "An org owner needs to open https://github.com/orgs/datlabhq/packages?repo_name=datlab-mcp"
-          echo "then Package settings -> Change visibility -> Public, and re-run this workflow."
+          echo "ghcr.io/datlabhq/datlab-mcp is still private. GITHUB_TOKEN cannot change package visibility."
+          echo "An org owner signed in as yon1nja needs to:"
+          echo "1. Open https://github.com/datlabhq/datlab-mcp"
+          echo "2. In the right sidebar, under Packages, click datlab-mcp"
+          echo "3. Click Package settings"
+          echo "4. In Danger Zone, click Change visibility, choose Public, type datlab-mcp, confirm"
+          echo "If Public is disabled, first open https://github.com/organizations/datlabhq/settings/member_privileges"
+          echo "enable Package creation for Public packages, accept any GitHub Packages terms, then retry the steps above."
+          echo "Then re-run this workflow from the Actions tab."
           exit 1
 
       - name: Install cosign
